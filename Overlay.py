@@ -2,6 +2,24 @@ from PIL import Image
 from gooey import Gooey, GooeyParser
 from os import listdir
 
+SUPPORTED_EXTENSIONS = ["png", "jpg", "jpeg"]
+OUTPUT_EXTENSION = "PNG"
+
+def GenerateOutname(path):
+	"""
+	Generates the filename for the exit file
+	"""
+
+	# change the extension
+	path = path.split(".")
+	path[-1] = OUTPUT_EXTENSION
+	path = ".".join(path)
+
+	# separate filename
+	path = path.split("\\")[-1]
+
+	return path
+
 def OpenImage(path):
 	"""
 	Opens an image using Image.open()
@@ -12,7 +30,7 @@ def SaveImage(path, image):
 	"""
 	Saves an image as PNG using image.save()
 	"""
-	image.save(path, "PNG")
+	image.save(path, OUTPUT_EXTENSION)
 
 def OverlayImage(image, overlay):
 	"""
@@ -44,26 +62,30 @@ def Resize(image, size, option=""):
 
 	return image.resize(size)
 
-def ListFiles(dir_path, extension):
+def GetExtension(filename):
 	"""
-	Returns all files from a directory with a certain extension
+	Returns the extension (in lowercase) of a file
+	"""
+	return filename.split(".")[-1].lower()
+
+def ListFiles(dir_path):
+	"""
+	Returns all files from a directory with the supported extensions
 	"""
 	files = []
 
-	print(f"Listing files in {dir_path}")
-
 	for filename in listdir(dir_path):
-		if filename.endswith(extension):
+		if GetExtension(filename) in SUPPORTED_EXTENSIONS:
 			files.append(dir_path + "\\" + filename)
 
-	print(f"Files found in {dir_path}")
-
-	for f in files:
-		print(f)
+	print(f"{len(files)} files found in {dir_path}")
 
 	return files
 
-@Gooey
+@Gooey(
+	progress_regex=r"^Processing image (?P<current>\d+)/(?P<total>\d+)$",
+    progress_expr="current / total * 100"
+	)
 def main():
 	parser = GooeyParser()
 
@@ -74,6 +96,12 @@ def main():
 		widget="DirChooser")
 
 	parser.add_argument(
+		"Output", 
+		type=str, 
+		help="A pasta para os ficheiros de output", 
+		widget="DirChooser")
+
+	parser.add_argument(
 		"Overlay", 
 		type=str, 
 		help="O ficheiro para colocar como overlay", 
@@ -81,14 +109,15 @@ def main():
 
 	args = parser.parse_args()
 
-	images = ListFiles(args.Images, ".jpg")
+	images = ListFiles(args.Images)
 
 	overlay = OpenImage(args.Overlay)
-	
-	print('Processing Images')
 
 	for image in images:
-		SaveImage(image + "edited.PNG", OverlayImage(OpenImage(image), overlay))
+		print(f"Processing image {images.index(image)+1}/{len(images)}")
+		SaveImage(args.Output + "\\" + GenerateOutname(image), OverlayImage(OpenImage(image), overlay))
+
+	print(f"{len(images)} images processed successefully :)")
 
 if __name__ == "__main__":
 	main()
