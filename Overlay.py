@@ -32,7 +32,7 @@ def SaveImage(path, image):
 	"""
 	image.save(path, OUTPUT_EXTENSION)
 
-def OverlayImage(image, overlay):
+def OverlayImage(image, overlay, alignment):
 	"""
 	Overlays the overlay on an image
 	"""
@@ -43,7 +43,8 @@ def OverlayImage(image, overlay):
 	elif(image.size[1] < overlay.size[1]):
 		overlay = Resize(overlay, image.size, option="height")
 
-	image.paste(overlay, (image.size[0]-overlay.size[0], image.size[1]-overlay.size[1]), overlay)
+
+	image.paste(overlay, (image.size[0]-overlay.size[0] if alignment[0] else 0, image.size[1]-overlay.size[1] if alignment[1] else 0), overlay)
 
 	return image
 
@@ -107,7 +108,23 @@ def main():
 		help="O ficheiro para colocar como overlay", 
 		widget="FileChooser")
 
+	options = parser.add_argument_group(
+		"Opções"
+	)
+
+	options.add_argument(
+		'Alinhamento', 
+		choices=["Canto Superior Direito", "Canto Superior Esquerdo", "Canto Inferior Direito", "Canto Inferior Esquerdo"], 
+		default="Canto Inferior Direito",
+		help="Alinhamento do overlay")
+
 	args = parser.parse_args()
+
+	align_arg = args.Alinhamento.split(" ")
+
+	alignment = (align_arg[2] == "Direito", align_arg[1] == "Inferior")
+
+	print(alignment)
 
 	images = ListFiles(args.Images)
 
@@ -115,7 +132,7 @@ def main():
 
 	for image in images:
 		print(f"Processing image {images.index(image)+1}/{len(images)}")
-		SaveImage(args.Output + "\\" + GenerateOutname(image), OverlayImage(OpenImage(image), overlay))
+		SaveImage(args.Output + "\\" + GenerateOutname(image), OverlayImage(OpenImage(image), overlay, alignment))
 
 	print(f"{len(images)} images processed successefully :)")
 
