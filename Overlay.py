@@ -1,18 +1,23 @@
 from PIL import Image
 from gooey import Gooey, GooeyParser
 from os import listdir
+import VideoProcessing
+import tempfile
+import cv2
 
-SUPPORTED_EXTENSIONS = ["png", "jpg", "jpeg"]
-OUTPUT_EXTENSION = "PNG"
+IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "jfif"]
+VIDEO_EXTENSIONS = ["mp4", "mov"]
+OUTPUT_IMAGE = "PNG"
+OUTPUT_VIDEO = "avi"
 
-def GenerateOutname(path):
+def GenerateOutname(path, extension):
 	"""
 	Generates the filename for the exit file
 	"""
 
 	# change the extension
 	path = path.split(".")
-	path[-1] = OUTPUT_EXTENSION
+	path[-1] = extension
 	path = ".".join(path)
 
 	# separate filename
@@ -30,7 +35,7 @@ def SaveImage(path, image):
 	"""
 	Saves an image as PNG using image.save()
 	"""
-	image.save(path, OUTPUT_EXTENSION)
+	image.save(path, OUTPUT_IMAGE)
 
 def OverlayImage(image, overlay, alignment):
 	"""
@@ -69,19 +74,28 @@ def GetExtension(filename):
 	"""
 	return filename.split(".")[-1].lower()
 
-def ListFiles(dir_path):
+def ListFiles(dir_path, extensions):
 	"""
-	Returns all files from a directory with the supported extensions
+	Returns all files from a directory with the given extensions
 	"""
 	files = []
 
 	for filename in listdir(dir_path):
-		if GetExtension(filename) in SUPPORTED_EXTENSIONS:
+		if GetExtension(filename) in extensions:
 			files.append(dir_path + "\\" + filename)
 
 	print(f"{len(files)} files found in {dir_path}")
 
 	return files
+
+def ProcessFolder(paths, overlay, alignment, output_dir):
+	""" Puts the overlay in all images of a list """
+
+	for image in paths:
+		print(f"Processing image {paths.index(image)+1}/{len(paths)}")
+		SaveImage(output_dir + "\\" + GenerateOutname(image, OUTPUT_IMAGE), OverlayImage(OpenImage(image), overlay, alignment))
+
+	print(f"{len(paths)} images processed successefully :)")
 
 @Gooey(
 	progress_regex=r"^Processing image (?P<current>\d+)/(?P<total>\d+)$",
@@ -122,19 +136,35 @@ def main():
 
 	align_arg = args.Alinhamento.split(" ")
 
-	alignment = (align_arg[2] == "Direito", align_arg[1] == "Inferior")
-
-	print(alignment)
-
-	images = ListFiles(args.Images)
-
 	overlay = OpenImage(args.Overlay)
 
-	for image in images:
-		print(f"Processing image {images.index(image)+1}/{len(images)}")
-		SaveImage(args.Output + "\\" + GenerateOutname(image), OverlayImage(OpenImage(image), overlay, alignment))
+	alignment = (align_arg[2] == "Direito", align_arg[1] == "Inferior")
 
-	print(f"{len(images)} images processed successefully :)")
+	# process images
+	images = ListFiles(args.Images, IMAGE_EXTENSIONS)
+
+	ProcessFolder(images, overlay, alignment, args.Output)
+
+	# process videos
+	videos = ListFiles(args.Images, VIDEO_EXTENSIONS)
+
+	for video in videos:
+		print(f"Processing video {videos.index(video)+1}/{len(videos)}")
+
+		# open video and split into frames
+		print("Openning video...")
+		capture = cv2.VideoCapture(video)
+		frames_dir = VideoProcessing.SplitFrames(capture)
+		frames = ListFiles(frames_dir.name, ["png"])
+
+		# put overlay in frames
+		overlayed_frames = tempfile.TemporaryDirectory(dir = "./")  
+		ProcessFolder(frames, overlay, alignment, overlayed_frames.name)
+
+		# join frames
+		VideoProcessing.JoinFrames(overlayed_frames.name, args.Output + "\\" + GenerateOutname(video, ""), capture.get(cv2.CAP_PROP_FPS))
+	
+	print(f"{len(videos)} videos processed successefully :)")
 
 if __name__ == "__main__":
 	main()
