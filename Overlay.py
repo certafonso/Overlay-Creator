@@ -1,4 +1,4 @@
-from PIL import Image
+from PIL import Image, ImageOps
 from gooey import Gooey, GooeyParser
 from os import listdir
 import VideoProcessing
@@ -29,7 +29,8 @@ def OpenImage(path):
 	"""
 	Opens an image using Image.open()
 	"""
-	return Image.open(path)
+	with Image.open(path) as image:
+		return ImageOps.exif_transpose(image)
 
 def SaveImage(path, image):
 	"""
