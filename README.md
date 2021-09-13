@@ -12,7 +12,7 @@ If you have python installed you can install all the required modules using the 
 
 Once you execute the problem you should see the following menu:
 
-![Main Menu](/img/menu.jpg)
+![Main Menu](/img/Menu.jpg)
 
 Select the folder with the input images and the folder for the output images on the *Input* and *Output* fields.
 
