@@ -79,6 +79,8 @@ def ListFiles(dir_path, extensions):
 	"""
 	Returns all files from a directory with the given extensions
 	"""
+
+	print(f"Searching for files with extensions {extensions} in {dir_path}")
 	files = []
 
 	for filename in listdir(dir_path):
@@ -137,7 +139,11 @@ def main():
 
 	align_arg = args.Alinhamento.split(" ")
 
+	print("Opennig overlay image...")
+
 	overlay = OpenImage(args.Overlay)
+
+	print("Openned overlay image.")
 
 	alignment = (align_arg[2] == "Direito", align_arg[1] == "Inferior")
 
